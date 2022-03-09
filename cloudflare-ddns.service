@@ -1,0 +1,17 @@
+[Unit]
+Description=Cloudflare DDNS service
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+# Change WorkingDirectory with the directory where you have this repo cloned
+WorkingDirectory=/mnt/Files/cloudflare-ddns
+ExecStart=/bin/bash daemon.sh
+Type=simple
+Restart=always
+RestartSec=5
+# If you want to execute it as non-root (recommended)
+User=seba
+
+[Install]
+WantedBy=multi-user.target
