@@ -38,27 +38,26 @@ echo "record: $record_identifier"
 echo "zone: $zone_identifier"
 
 while $(true); do
-    ip=$(curl -s http://ipv4.icanhazip.com)
+    ip="$(get_ip)"
 
     log "Checking"
 
-    if [ "${ip}" == "${old_ip}" ]; then
+    while [ "${ip}" == "${old_ip}" ]; do
         log "IP hasn't changed"
-        exit 0
-    fi
+        # Wait 10 minutes
+        sleep 600
+        ip="$(get_ip)"
+    done
 
-    update=$(cloudflare_curl PUT "zones/$zone_identifier/dns_records/$record_identifier" --data "{\"id\":\"$zone_identifier\",\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\"}")
+    update=$(cloudflare_curl PUT "zones/${zone_identifier}/dns_records/${record_identifier}" --data "{\"id\":\"${zone_identifier}\",\"type\":\"A\",\"name\":\"${record_name}\",\"content\":\"${ip}\"}")
 
-    if [[ $update == *"\"success\":false"* ]]; then
+    if [[ ${update} == *"\"success\":false"* ]]; then
         message="API UPDATE FAILED. DUMPING RESULTS:\n${update}"
         log "${message}"
         exit 1
     else
         message="IP changed to: ${ip}"
-        old_ip=${ip}
+        old_ip="${ip}"
         log "${message}"
     fi
-
-    # Wait 10 minutes
-    sleep 600
 done
