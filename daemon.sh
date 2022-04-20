@@ -10,8 +10,8 @@
 source ./keys.sh
 
 log() {
-    if [ "$1" ]; then
-        echo -e "[$(date)] - $1"
+    if [ "$@" ]; then
+        echo -e "[$(date)] - $@"
     fi
 }
 
@@ -34,30 +34,29 @@ cloudflare_curl() {
 zone_identifier=$(cloudflare_curl GET "zones?name=${zone_name}" | grep -Po '"id": *\K"[^"]*"' | head -1 | tr -d \")
 record_identifier=$(cloudflare_curl GET "zones/${zone_identifier}/dns_records?name=${record_name}" | grep -Po '(?<="id":")[^"]*')
 
-echo "record: $record_identifier"
-echo "zone: $zone_identifier"
+log "record: $record_identifier"
+log "zone: $zone_identifier"
 
 while $(true); do
+    log "Checking"
     ip="$(get_ip)"
 
-    log "Checking"
-
-    while [ "${ip}" == "${old_ip}" ]; do
+    if [ "${ip}" == "${old_ip}" ]; then
         log "IP hasn't changed"
-        # Wait 10 minutes
-        sleep 600
-        ip="$(get_ip)"
-    done
-
-    update=$(cloudflare_curl PUT "zones/${zone_identifier}/dns_records/${record_identifier}" --data "{\"id\":\"${zone_identifier}\",\"type\":\"A\",\"name\":\"${record_name}\",\"content\":\"${ip}\"}")
-
-    if [[ ${update} == *"\"success\":false"* ]]; then
-        message="API UPDATE FAILED. DUMPING RESULTS:\n${update}"
-        log "${message}"
-        exit 1
     else
-        message="IP changed to: ${ip}"
-        old_ip="${ip}"
-        log "${message}"
+        update=$(cloudflare_curl PUT "zones/${zone_identifier}/dns_records/${record_identifier}" \
+                 --data "{\"id\":\"${zone_identifier}\",\"type\":\"A\",\"name\":\"${record_name}\",\"content\":\"${ip}\"}")
+
+        if [[ ${update} == *"\"success\":false"* ]]; then
+            log "API UPDATE FAILED. DUMPING RESULTS:\n${update}"
+        else
+            log "IP changed to: ${ip}"
+        fi
+
     fi
+
+    old_ip="${ip}"
+
+    # Wait 30 minutes
+    sleep 1800
 done
