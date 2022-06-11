@@ -31,8 +31,8 @@ cloudflare_curl() {
         "${@}"
 }
 
-zone_identifier=$(cloudflare_curl GET "zones?name=${zone_name}" | grep -Po '"id": *\K"[^"]*"' | head -1 | tr -d \")
-record_identifier=$(cloudflare_curl GET "zones/${zone_identifier}/dns_records?name=${record_name}" | grep -Po '(?<="id":")[^"]*')
+zone_identifier=$(cloudflare_curl GET "zones?name=${zone_name}" | jq '.result[0].id' | tr -d \")
+record_identifier=$(cloudflare_curl GET "zones/${zone_identifier}/dns_records?name=${record_name}" | jq '.result[] | select(.type == "A") | .id' | tr -d \")
 
 log "record: $record_identifier"
 log "zone: $zone_identifier"
@@ -45,14 +45,13 @@ while true; do
         log "IP hasn't changed (old: ${old_ip} new: ${ip})"
     else
         update=$(cloudflare_curl PUT "zones/${zone_identifier}/dns_records/${record_identifier}" \
-                 --data "{\"id\":\"${zone_identifier}\",\"type\":\"A\",\"name\":\"${record_name}\",\"content\":\"${ip}\"}")
+                 --data "{\"id\":\"${zone_identifier}\",\"type\":\"A\",\"name\":\"${record_name}\",\"content\":\"${ip}\"}" | jq '.')
 
-        if [[ ${update} == *"\"success\":false"* ]]; then
+        if [ "$(echo "${update}" | jq .success)" != "true" ]; then
             log "API UPDATE FAILED. DUMPING RESULTS:\n${update}"
         else
             log "IP changed to: ${ip}"
         fi
-
     fi
 
     old_ip="${ip}"

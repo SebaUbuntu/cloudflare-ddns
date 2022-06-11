@@ -2,6 +2,7 @@
 
 ## Instructions
 
+- Install jq with `sudo apt install jq`
 - Login to your Cloudflare account
 - Note your zone name (which is your website name)
 - Go to your website's DNS configuration section
