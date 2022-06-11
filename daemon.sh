@@ -37,12 +37,12 @@ record_identifier=$(cloudflare_curl GET "zones/${zone_identifier}/dns_records?na
 log "record: $record_identifier"
 log "zone: $zone_identifier"
 
-while $(true); do
+while true; do
     log "Checking"
     ip="$(get_ip)"
 
     if [ "${ip}" == "${old_ip}" ]; then
-        log "IP hasn't changed"
+        log "IP hasn't changed (old: ${old_ip} new: ${ip})"
     else
         update=$(cloudflare_curl PUT "zones/${zone_identifier}/dns_records/${record_identifier}" \
                  --data "{\"id\":\"${zone_identifier}\",\"type\":\"A\",\"name\":\"${record_name}\",\"content\":\"${ip}\"}")
